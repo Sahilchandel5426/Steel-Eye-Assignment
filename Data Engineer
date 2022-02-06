@@ -1,0 +1,31 @@
+from bs4 import BeautifulSoup
+import requests
+import re
+import zipfile
+import pandas as pd
+import xml.etree.ElementTree as Xet
+
+
+source = requests.get('https://registers.esma.europa.eu/solr/esma_registers_firds_files/select?q=*&fq=publication_date:%5B2021-01-17T00:00:00Z+TO+2021-01-19T23:59:59Z%5D&wt=xml&indent=true&start=0&rows=100').text
+
+soup = BeautifulSoup(source, 'lxml')
+data=soup.find(name="response").text
+link=list(re.findall(r'(https?://\S+)', data))
+print(link)
+
+url = link[0]
+
+r = requests.get(url, stream=True)
+with open('xmldata.zip', "wb") as f:
+    for chunk in r.iter_content(chunk_size=512):
+        if chunk:  # filter out keep-alive new chunks
+            f.write(chunk)
+zf = zipfile.ZipFile('xmldata.zip', 'r')
+
+for name in zf.namelist():
+    if name.endswith('/'): continue
+
+    f = zf.open(name)
+
+    print(f.read())
+
